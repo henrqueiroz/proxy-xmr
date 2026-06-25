@@ -102,7 +102,11 @@ app.post("/api/restart", async (req, res) => {
 });
 
 // ---- Estáticos (UI) ----
-app.use(express.static(path.join(__dirname, "..", "public")));
+app.use(express.static(path.join(__dirname, "..", "public"), {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res) => res.setHeader("Cache-Control", "no-store"),
+}));
 
 // ---- Boot ----
 ensureConfigExists();
