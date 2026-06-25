@@ -79,6 +79,8 @@ details.advanced { margin-top: 20px; }
 details.advanced summary { cursor: pointer; color: var(--muted); font-size: 13px; }
 details.advanced textarea { margin-top: 10px; }
 code { background: #0b0d11; padding: 2px 6px; border-radius: 5px; font-size: 13px; }
+tr.slow-rig td { color: var(--danger); }
+tr.slow-rig td:first-child::after { content: " (lento)"; color: var(--muted); font-size: 11px; }
 pre#logs {
   background: #0b0d11; border: 1px solid var(--border); border-radius: 10px;
   padding: 14px; max-height: 360px; overflow: auto; font-size: 12px; line-height: 1.5;

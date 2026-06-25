@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>xmrig-proxy GUI</title>
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=5" />
 </head>
 <body>
   <header>
@@ -61,7 +61,8 @@
     </section>
 
     <section>
-      <h2>Mineradores conectados</h2>
+      <h2>Mineradores conectados (ranking de hashrate)</h2>
+      <p class="hint">Ordenado do maior para o menor. Rigs em <span style="color:#e74c3c">vermelho ⚠️</span> estão abaixo de 70% da média — provável má configuração (huge pages/MSR desligados). Veja as dicas no README para otimizar.</p>
       <table id="workers-table">
         <thead><tr><th>Worker</th><th>IP</th><th>Hashrate 60s</th><th>Aceitos</th><th>Rejeitados</th></tr></thead>
         <tbody></tbody>
@@ -148,6 +149,6 @@
     </section>
   </main>
 
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

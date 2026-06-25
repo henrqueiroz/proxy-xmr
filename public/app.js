@@ -68,12 +68,26 @@ async function refreshWorkers() {
   tbody.innerHTML = "";
   if (!r.ok || !r.data || !Array.isArray(r.data.workers)) return;
   // Formato da API: workers = [[id, ip, conn, accepted, rejected, invalid, hashes, hr0, hr1, ...], ...]
-  for (const w of r.data.workers) {
+  const hr = (w) => Number(w[8] ?? w[7] ?? 0);
+
+  // Ordena do maior hashrate para o menor (ranking).
+  const rows = [...r.data.workers].sort((a, b) => hr(b) - hr(a));
+
+  // Média de hashrate (só de quem está produzindo) para destacar rigs abaixo.
+  const active = rows.map(hr).filter((v) => v > 0);
+  const avg = active.length ? active.reduce((a, b) => a + b, 0) / active.length : 0;
+
+  rows.forEach((w, i) => {
+    const h = hr(w);
+    // Marca em vermelho rigs com menos de 70% da média (provável má config/huge pages off).
+    const slow = avg > 0 && h > 0 && h < avg * 0.7;
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${w[0] ?? "—"}</td><td>${w[1] ?? "—"}</td>` +
-      `<td>${fmtHashrate(w[8] ?? w[7] ?? 0)}</td><td>${w[3] ?? 0}</td><td>${w[4] ?? 0}</td>`;
+    if (slow) tr.className = "slow-rig";
+    const medal = i === 0 && h > 0 ? "🥇 " : "";
+    tr.innerHTML = `<td>${medal}${w[0] ?? "—"}</td><td>${w[1] ?? "—"}</td>` +
+      `<td>${fmtHashrate(h)}${slow ? " ⚠️" : ""}</td><td>${w[3] ?? 0}</td><td>${w[4] ?? 0}</td>`;
     tbody.appendChild(tr);
-  }
+  });
 }
 
 async function refreshLogs() {
