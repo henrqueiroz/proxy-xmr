@@ -4,7 +4,7 @@ Web GUI em Node.js para gerenciar o [xmrig-proxy](https://github.com/xmrig/xmrig
 
 Recursos:
 
-- ✅ **Editar o config.json** (pools, carteira, portas, algoritmo) pela web — ao salvar, o proxy reinicia e **todas as máquinas apontadas para o proxy passam a minerar com a nova configuração**.
+- ✅ **Formulário visual de configuração** (pools, carteira, porta, TLS, modo) — a GUI **gera o config.json sozinha**; não precisa editar JSON. Há um "modo avançado" opcional para editar o JSON cru. Ao salvar, o proxy reinicia e **todas as máquinas apontadas para o proxy passam a minerar com a nova configuração**.
 - ✅ **Iniciar / parar / reiniciar** o processo do xmrig-proxy.
 - ✅ **Estatísticas ao vivo**: hashrate (10s/60s/15m), mineradores conectados, shares aceitos/rejeitados, latência.
 - ✅ **Lista de mineradores** conectados com hashrate por worker.
@@ -57,12 +57,12 @@ proxy/
    - Exponha a porta **8080** com um domínio (a GUI). O EasyPanel coloca HTTPS automático.
    - Exponha a porta **3333** (TCP) — é onde os seus mineradores vão conectar. Em EasyPanel, use **TCP proxy / port mapping** para 3333.
 6. Faça o **Deploy**. Acesse o domínio da GUI, faça login.
-7. Na aba **Configuração do proxy**, ajuste:
-   - `pools[].url` → seu pool (ex.: `xmr.pool.com:443`)
-   - `pools[].user` → sua carteira / login do pool
-   - `pools[].tls` → `true` se a porta do pool for TLS
-   - `bind` → `["0.0.0.0:3333"]` (porta que os miners usam)
-   - Salve. O proxy reinicia com a nova config.
+7. Na seção **Configuração do proxy** (formulário visual), preencha:
+   - **URL do pool** → ex.: `xmr.pool.com:443`
+   - **Carteira / usuário** → sua carteira / login do pool
+   - **TLS** → marque se a porta do pool for SSL
+   - **Porta de mineração** → `0.0.0.0:3333` (porta que os miners usam)
+   - Clique em **Salvar config**. A GUI gera o `config.json` e o proxy reinicia com a nova config.
 
 ## Apontar os mineradores
 
