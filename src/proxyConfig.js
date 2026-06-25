@@ -71,6 +71,10 @@ export function writeConfig(obj) {
   obj.http.port = obj.http.port || config.proxyApiPort;
   obj.http["access-token"] = obj.http["access-token"] || config.proxyApiToken;
 
+  // Verbose ligado para que os shares aceitos (com dificuldade) apareçam nos logs,
+  // permitindo o rastreamento de best shares e blocos pela GUI.
+  if (obj.verbose == null || obj.verbose < 1) obj.verbose = 1;
+
   const dir = path.dirname(config.proxyConfigPath);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(config.proxyConfigPath, JSON.stringify(obj, null, 2));

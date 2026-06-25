@@ -7,6 +7,23 @@ function fmtHashrate(h) {
   return h.toFixed(1) + " H/s";
 }
 
+// Formata uma dificuldade grande como 1.23G, 4.5M, etc.
+function fmtDiff(d) {
+  if (d == null || d === 0) return "—";
+  if (d >= 1e12) return (d / 1e12).toFixed(2) + " T";
+  if (d >= 1e9) return (d / 1e9).toFixed(2) + " G";
+  if (d >= 1e6) return (d / 1e6).toFixed(2) + " M";
+  if (d >= 1e3) return (d / 1e3).toFixed(2) + " k";
+  return String(Math.round(d));
+}
+
+function fmtPct(p) {
+  if (p == null) return "—";
+  if (p >= 100) return p.toFixed(1) + "% 🎯";
+  if (p >= 1) return p.toFixed(2) + "%";
+  return p.toFixed(4) + "%";
+}
+
 async function api(path, opts) {
   const res = await fetch(path, opts);
   return res.json();
@@ -193,11 +210,61 @@ $("btn-save-config").onclick = saveConfig;
 $("btn-save-json").onclick = saveJson;
 $("btn-add-pool").onclick = () => addPoolRow();
 
+// ---- Best shares / blocos ----
+let netDiffEdited = false;
+$("f-netdiff").addEventListener("input", () => { netDiffEdited = true; });
+
+async function saveNetDiff() {
+  const v = $("f-netdiff").value.trim();
+  const r = await api("/api/network-diff", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ networkDiff: Number(v) }),
+  });
+  if (r.ok) netDiffEdited = false;
+}
+$("btn-save-netdiff").onclick = saveNetDiff;
+
+async function refreshShares() {
+  const r = await api("/api/shares");
+  if (!r.ok) return;
+  const d = r.data;
+
+  $("best-diff").textContent = d.best ? fmtDiff(d.best.diff) : "—";
+  $("best-miner").textContent = d.best ? d.best.miner : "—";
+  $("best-pct").textContent = fmtPct(d.bestPctOfNetwork);
+  $("net-diff").textContent = fmtDiff(d.networkDiff);
+  // Não sobrescreve o campo enquanto o usuário digita.
+  if (!netDiffEdited && d.networkDiff) $("f-netdiff").value = d.networkDiff;
+
+  // Últimos 10 shares
+  const stb = document.querySelector("#shares-table tbody");
+  stb.innerHTML = "";
+  for (const s of d.recentShares || []) {
+    const pct = d.networkDiff > 0 ? (s.diff / d.networkDiff) * 100 : null;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${fmtDiff(s.diff)}</td><td>${s.miner}</td>` +
+      `<td>${fmtPct(pct)}</td><td>${new Date(s.at).toLocaleTimeString("pt-BR")}</td>`;
+    stb.appendChild(tr);
+  }
+
+  // Relatório de blocos
+  const btb = document.querySelector("#blocks-table tbody");
+  btb.innerHTML = "";
+  for (const b of d.blocks || []) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${fmtDiff(b.diff)}</td><td>${fmtDiff(b.networkDiff)}</td>` +
+      `<td>${b.miner}</td><td>${new Date(b.at).toLocaleString("pt-BR")}</td>`;
+    btb.appendChild(tr);
+  }
+}
+
 // Loop de atualização
 function tick() {
   refreshStatus();
   refreshStats();
   refreshWorkers();
+  refreshShares();
   refreshLogs();
 }
 loadConfig();

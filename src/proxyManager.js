@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "./config.js";
+import { shareTracker } from "./shareTracker.js";
 
 const LOG_MAX_LINES = 1000;
 
@@ -23,6 +24,8 @@ class ProxyManager {
     if (this.logs.length > LOG_MAX_LINES) {
       this.logs.splice(0, this.logs.length - LOG_MAX_LINES);
     }
+    // Alimenta o rastreador de shares/blocos com cada linha do proxy.
+    shareTracker.ingestLogLine(line);
   }
 
   start() {

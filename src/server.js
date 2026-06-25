@@ -5,6 +5,7 @@ import { config } from "./config.js";
 import { proxyManager } from "./proxyManager.js";
 import { readConfig, writeConfig, ensureConfigExists } from "./proxyConfig.js";
 import { getDashboard, getWorkers } from "./proxyApi.js";
+import { shareTracker } from "./shareTracker.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -40,6 +41,8 @@ app.get("/api/stats", async (req, res) => {
 app.get("/api/workers", async (req, res) => {
   try {
     const data = await getWorkers();
+    // Atualiza o mapa IP->nome para identificar quem encontrou cada share.
+    shareTracker.updateMinerNames(data);
     res.json({ ok: true, data });
   } catch (err) {
     res.json({ ok: false, error: err.message });
@@ -48,6 +51,17 @@ app.get("/api/workers", async (req, res) => {
 
 app.get("/api/logs", (req, res) => {
   res.json({ logs: proxyManager.logs });
+});
+
+// Best shares + blocos encontrados + dificuldade da rede.
+app.get("/api/shares", (req, res) => {
+  res.json({ ok: true, data: shareTracker.snapshot() });
+});
+
+// Define a dificuldade da rede manualmente (usada para calcular % e detectar blocos).
+app.post("/api/network-diff", (req, res) => {
+  shareTracker.setNetworkDiff(req.body.networkDiff);
+  res.json({ ok: true, networkDiff: shareTracker.networkDiff });
 });
 
 app.get("/api/config", (req, res) => {
