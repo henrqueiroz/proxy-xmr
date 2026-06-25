@@ -72,10 +72,17 @@ let currentConfig = {};
 function addPoolRow(pool = {}) {
   const tpl = $("pool-template").content.cloneNode(true);
   const card = tpl.querySelector(".pool-card");
+  // Mostra a carteira "limpa": se o user terminar em ".rig_id", separa o nome de volta
+  // para o campo Rig ID, evitando duplicar o sufixo ao salvar novamente.
+  let wallet = pool.user || "";
+  const rigId = pool.rig_id || "";
+  if (rigId && wallet.endsWith("." + rigId)) {
+    wallet = wallet.slice(0, -(rigId.length + 1));
+  }
   card.querySelector(".p-url").value = pool.url || "";
-  card.querySelector(".p-user").value = pool.user || "";
+  card.querySelector(".p-user").value = wallet;
   card.querySelector(".p-pass").value = pool.pass != null ? pool.pass : "x";
-  card.querySelector(".p-rigid").value = pool.rig_id || "";
+  card.querySelector(".p-rigid").value = rigId;
   card.querySelector(".p-tls").checked = pool.tls !== false ? !!pool.tls : false;
   card.querySelector(".p-keepalive").checked = pool.keepalive !== false;
   card.querySelector(".p-remove").onclick = () => card.remove();
@@ -102,11 +109,20 @@ function buildConfigFromForm() {
   for (const card of document.querySelectorAll("#pools-list .pool-card")) {
     const url = card.querySelector(".p-url").value.trim();
     if (!url) continue;
+    const wallet = card.querySelector(".p-user").value.trim();
+    const rigId = card.querySelector(".p-rigid").value.trim();
+    // A maioria dos pools (herominers etc.) lê o nome do worker como "carteira.NOME".
+    // Então, se o Rig ID estiver preenchido e ainda não fizer parte da carteira,
+    // a GUI junta automaticamente para o nome aparecer no painel do pool.
+    let user = wallet;
+    if (rigId && !wallet.endsWith("." + rigId)) {
+      user = wallet + "." + rigId;
+    }
     pools.push({
       url,
-      user: card.querySelector(".p-user").value.trim(),
+      user,
       pass: card.querySelector(".p-pass").value || "x",
-      rig_id: card.querySelector(".p-rigid").value.trim() || "proxy",
+      rig_id: rigId || "proxy",
       keepalive: card.querySelector(".p-keepalive").checked,
       tls: card.querySelector(".p-tls").checked,
       enabled: true,
