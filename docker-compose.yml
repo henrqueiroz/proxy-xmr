@@ -1,0 +1,24 @@
+# Compose para rodar localmente ou via EasyPanel (App tipo Compose).
+services:
+  xmrig-proxy-gui:
+    build:
+      context: .
+      args:
+        XMRIG_PROXY_VERSION: "6.22.0"
+    container_name: xmrig-proxy-gui
+    restart: unless-stopped
+    ports:
+      - "8080:8080"   # GUI web
+      - "3333:3333"   # porta de mineração (miners conectam aqui)
+    environment:
+      GUI_USER: "admin"
+      GUI_PASS: "troque-esta-senha"
+      GUI_PORT: "8080"
+      PROXY_API_PORT: "8081"
+      PROXY_API_TOKEN: "troque-este-token"
+      AUTO_START: "true"   # inicia o xmrig-proxy junto com o container
+    volumes:
+      - proxy-data:/data   # persiste config.json
+
+volumes:
+  proxy-data:

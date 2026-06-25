@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xmrig-proxy GUI</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>⛏️ xmrig-proxy GUI</h1>
+    <div id="proc-status" class="badge">—</div>
+    <div class="controls">
+      <button id="btn-start" class="ok">Iniciar</button>
+      <button id="btn-stop" class="danger">Parar</button>
+      <button id="btn-restart">Reiniciar</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="cards">
+      <div class="card"><span class="label">Hashrate (10s)</span><span class="val" id="hr-10s">—</span></div>
+      <div class="card"><span class="label">Hashrate (60s)</span><span class="val" id="hr-60s">—</span></div>
+      <div class="card"><span class="label">Hashrate (15m)</span><span class="val" id="hr-15m">—</span></div>
+      <div class="card"><span class="label">Mineradores</span><span class="val" id="miners">—</span></div>
+      <div class="card ok"><span class="label">Shares aceitos</span><span class="val" id="accepted">—</span></div>
+      <div class="card danger"><span class="label">Shares rejeitados</span><span class="val" id="rejected">—</span></div>
+      <div class="card"><span class="label">Total hashes</span><span class="val" id="hashes">—</span></div>
+      <div class="card"><span class="label">Latência média</span><span class="val" id="avgtime">—</span></div>
+    </section>
+    <p id="stats-error" class="error"></p>
+
+    <section>
+      <h2>Mineradores conectados</h2>
+      <table id="workers-table">
+        <thead><tr><th>Worker</th><th>IP</th><th>Hashrate 60s</th><th>Aceitos</th><th>Rejeitados</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Configuração do proxy</h2>
+      <p class="hint">Edite o config.json abaixo. Ao salvar, o proxy reinicia e <strong>todas as máquinas apontadas para o proxy passam a minerar com o novo pool/config</strong>.</p>
+      <textarea id="config-text" spellcheck="false"></textarea>
+      <div class="row">
+        <button id="btn-load-config">Recarregar</button>
+        <label><input type="checkbox" id="restart-on-save" checked /> Reiniciar ao salvar</label>
+        <button id="btn-save-config" class="ok">Salvar config</button>
+      </div>
+      <p id="config-msg" class="msg"></p>
+    </section>
+
+    <section>
+      <h2>Logs</h2>
+      <pre id="logs"></pre>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
