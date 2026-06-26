@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>xmrig-proxy GUI</title>
-  <link rel="stylesheet" href="style.css?v=5" />
+  <link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body>
   <header>
@@ -31,31 +31,39 @@
     <p id="stats-error" class="error"></p>
 
     <section>
-      <h2>Best shares & progresso até o bloco</h2>
-      <div class="row" style="margin-bottom:12px">
-        <div class="field">
-          <label>Dificuldade da rede (manual)</label>
-          <input type="text" id="f-netdiff" placeholder="ex.: 1000000000" />
+      <h2>Best shares & progresso até o bloco (via API do pool)</h2>
+      <div class="form-grid" style="margin-bottom:12px">
+        <div class="field grow">
+          <label>API do pool (base)</label>
+          <input type="text" id="f-poolbase" placeholder="https://zephyr.herominers.com/api" />
         </div>
-        <button id="btn-save-netdiff">Salvar diff da rede</button>
+        <div class="field grow">
+          <label>Carteira (cole a completa; a GUI extrai só o endereço)</label>
+          <input type="text" id="f-poolwallet" placeholder="solo:ZEPHs9...=96000" />
+        </div>
+        <button id="btn-save-poolcfg" class="ok">Salvar</button>
       </div>
+      <p id="pool-error" class="error"></p>
+
       <div class="cards">
-        <div class="card"><span class="label">Maior share</span><span class="val" id="best-diff">—</span></div>
+        <div class="card"><span class="label">Maior dificuldade (job atual)</span><span class="val" id="best-diff">—</span></div>
         <div class="card"><span class="label">Quem encontrou</span><span class="val" id="best-miner">—</span></div>
         <div class="card ok"><span class="label">% da dificuldade da rede</span><span class="val" id="best-pct">—</span></div>
         <div class="card"><span class="label">Dificuldade da rede</span><span class="val" id="net-diff">—</span></div>
+        <div class="card"><span class="label">Altura da rede</span><span class="val" id="net-height">—</span></div>
+        <div class="card ok"><span class="label">Blocos encontrados</span><span class="val" id="blocks-found">—</span></div>
       </div>
 
-      <h3>Últimos 10 shares</h3>
+      <h3>Dificuldade por minerador (job atual)</h3>
       <table id="shares-table">
-        <thead><tr><th>Dificuldade</th><th>Minerador</th><th>% da rede</th><th>Hora</th></tr></thead>
+        <thead><tr><th>Minerador</th><th>Hashrate</th><th>Diff atual</th><th>% da rede</th><th>Shares ok</th><th>Último share</th></tr></thead>
         <tbody></tbody>
       </table>
 
-      <h3>📦 Relatório de blocos encontrados</h3>
-      <p class="hint">Registra cada vez que um share atinge ou supera a dificuldade da rede (candidato a bloco). Persistente entre reinícios.</p>
+      <h3>📦 Blocos encontrados (reais, do pool)</h3>
+      <p class="hint">Blocos efetivamente encontrados por esta carteira, conforme o pool. Inclui altura e data.</p>
       <table id="blocks-table">
-        <thead><tr><th>Dificuldade do share</th><th>Diff da rede</th><th>Minerador</th><th>Data / hora</th></tr></thead>
+        <thead><tr><th>Altura</th><th>Dificuldade</th><th>Status</th><th>Data / hora</th></tr></thead>
         <tbody></tbody>
       </table>
     </section>
@@ -149,6 +157,6 @@
     </section>
   </main>
 
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

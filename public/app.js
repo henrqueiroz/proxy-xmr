@@ -224,63 +224,108 @@ $("btn-save-config").onclick = saveConfig;
 $("btn-save-json").onclick = saveJson;
 $("btn-add-pool").onclick = () => addPoolRow();
 
-// ---- Best shares / blocos ----
-let netDiffEdited = false;
-$("f-netdiff").addEventListener("input", () => { netDiffEdited = true; });
+// ---- Best shares / blocos (via API do pool) ----
+let poolCfgEdited = false;
+$("f-poolwallet").addEventListener("input", () => { poolCfgEdited = true; });
+$("f-poolbase").addEventListener("input", () => { poolCfgEdited = true; });
 
-async function saveNetDiff() {
-  const v = $("f-netdiff").value.trim();
-  const r = await api("/api/network-diff", {
+async function loadPoolCfg() {
+  const r = await api("/api/pool-config");
+  if (r.ok && !poolCfgEdited) {
+    $("f-poolbase").value = r.base || "";
+    $("f-poolwallet").value = r.wallet || "";
+  }
+}
+
+async function savePoolCfg() {
+  const r = await api("/api/pool-config", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ networkDiff: Number(v) }),
+    body: JSON.stringify({
+      base: $("f-poolbase").value.trim(),
+      wallet: $("f-poolwallet").value.trim(),
+    }),
   });
-  if (r.ok) netDiffEdited = false;
+  if (r.ok) {
+    poolCfgEdited = false;
+    $("f-poolwallet").value = r.wallet || ""; // mostra já sanitizada
+    refreshPool();
+  }
 }
-$("btn-save-netdiff").onclick = saveNetDiff;
+$("btn-save-poolcfg").onclick = savePoolCfg;
 
-async function refreshShares() {
-  const r = await api("/api/shares");
-  if (!r.ok) return;
+// Parseia uma entrada de bloco do node-cryptonote-pool (string com ':').
+function parseBlock(entry) {
+  if (typeof entry !== "string") return entry;
+  // Formato comum: hash:time:reward:height:difficulty:shares:...
+  const p = entry.split(":");
+  return {
+    hash: p[0],
+    time: p[1] ? Number(p[1]) * 1000 : null,
+    height: p[3] || p[2] || "?",
+    difficulty: p[4] ? Number(p[4]) : null,
+  };
+}
+
+async function refreshPool() {
+  const r = await api("/api/pool");
+  const err = $("pool-error");
+  if (!r.ok) {
+    err.textContent = "Pool API: " + r.error + " (configure a carteira/URL acima)";
+    return;
+  }
+  err.textContent = "";
   const d = r.data;
 
   $("best-diff").textContent = d.best ? fmtDiff(d.best.diff) : "—";
   $("best-miner").textContent = d.best ? d.best.miner : "—";
   $("best-pct").textContent = fmtPct(d.bestPctOfNetwork);
   $("net-diff").textContent = fmtDiff(d.networkDiff);
-  // Não sobrescreve o campo enquanto o usuário digita.
-  if (!netDiffEdited && d.networkDiff) $("f-netdiff").value = d.networkDiff;
+  $("net-height").textContent = d.networkHeight ? d.networkHeight.toLocaleString("pt-BR") : "—";
+  $("blocks-found").textContent = d.blocksFound != null ? d.blocksFound : "—";
 
-  // Últimos 10 shares
+  // Dificuldade por minerador
   const stb = document.querySelector("#shares-table tbody");
   stb.innerHTML = "";
-  for (const s of d.recentShares || []) {
-    const pct = d.networkDiff > 0 ? (s.diff / d.networkDiff) * 100 : null;
+  for (const w of d.workers || []) {
+    const pct = d.networkDiff > 0 ? (w.lastJobDifficulty / d.networkDiff) * 100 : null;
+    const last = w.lastShare ? new Date(w.lastShare).toLocaleTimeString("pt-BR") : "—";
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${fmtDiff(s.diff)}</td><td>${s.miner}</td>` +
-      `<td>${fmtPct(pct)}</td><td>${new Date(s.at).toLocaleTimeString("pt-BR")}</td>`;
+    tr.innerHTML = `<td>${w.name || "—"}</td><td>${fmtHashrate(w.hashrate)}</td>` +
+      `<td>${fmtDiff(w.lastJobDifficulty)}</td><td>${fmtPct(pct)}</td>` +
+      `<td>${w.sharesGood}</td><td>${last}</td>`;
     stb.appendChild(tr);
   }
 
-  // Relatório de blocos
+  // Blocos reais
   const btb = document.querySelector("#blocks-table tbody");
   btb.innerHTML = "";
-  for (const b of d.blocks || []) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${fmtDiff(b.diff)}</td><td>${fmtDiff(b.networkDiff)}</td>` +
-      `<td>${b.miner}</td><td>${new Date(b.at).toLocaleString("pt-BR")}</td>`;
-    btb.appendChild(tr);
+  const blocks = (d.unlocked || []).map(parseBlock);
+  if (blocks.length === 0) {
+    btb.innerHTML = `<tr><td colspan="4" class="hint">Nenhum bloco encontrado ainda por esta carteira.</td></tr>`;
+  } else {
+    for (const b of blocks) {
+      const when = b.time ? new Date(b.time).toLocaleString("pt-BR") : "—";
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${b.height}</td><td>${fmtDiff(b.difficulty)}</td>` +
+        `<td>confirmado</td><td>${when}</td>`;
+      btb.appendChild(tr);
+    }
   }
 }
 
 // Loop de atualização
+let poolTickCount = 0;
 function tick() {
   refreshStatus();
   refreshStats();
   refreshWorkers();
-  refreshShares();
   refreshLogs();
+  // A API do pool é mais lenta e tem rate limit: atualiza a cada ~15s.
+  if (poolTickCount % 5 === 0) refreshPool();
+  poolTickCount++;
 }
 loadConfig();
+loadPoolCfg();
 tick();
 setInterval(tick, 3000);

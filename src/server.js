@@ -5,7 +5,8 @@ import { config } from "./config.js";
 import { proxyManager } from "./proxyManager.js";
 import { readConfig, writeConfig, ensureConfigExists } from "./proxyConfig.js";
 import { getDashboard, getWorkers } from "./proxyApi.js";
-import { shareTracker } from "./shareTracker.js";
+import { getPoolReport, getPoolApiConfig, setPoolApi } from "./poolApi.js";
+import fs from "node:fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -41,8 +42,6 @@ app.get("/api/stats", async (req, res) => {
 app.get("/api/workers", async (req, res) => {
   try {
     const data = await getWorkers();
-    // Atualiza o mapa IP->nome para identificar quem encontrou cada share.
-    shareTracker.updateMinerNames(data);
     res.json({ ok: true, data });
   } catch (err) {
     res.json({ ok: false, error: err.message });
@@ -53,15 +52,26 @@ app.get("/api/logs", (req, res) => {
   res.json({ logs: proxyManager.logs });
 });
 
-// Best shares + blocos encontrados + dificuldade da rede.
-app.get("/api/shares", (req, res) => {
-  res.json({ ok: true, data: shareTracker.snapshot() });
+// Relatório real via API do pool (herominers): dificuldade da rede, best share,
+// dificuldade por worker e blocos encontrados.
+app.get("/api/pool", async (req, res) => {
+  try {
+    const data = await getPoolReport();
+    res.json({ ok: true, data });
+  } catch (err) {
+    res.json({ ok: false, error: err.message });
+  }
 });
 
-// Define a dificuldade da rede manualmente (usada para calcular % e detectar blocos).
-app.post("/api/network-diff", (req, res) => {
-  shareTracker.setNetworkDiff(req.body.networkDiff);
-  res.json({ ok: true, networkDiff: shareTracker.networkDiff });
+// Lê/define a URL da API do pool e a carteira a consultar (persistido em /data).
+app.get("/api/pool-config", (req, res) => {
+  res.json({ ok: true, ...getPoolApiConfig() });
+});
+
+app.post("/api/pool-config", (req, res) => {
+  setPoolApi({ base: req.body.base, wallet: req.body.wallet });
+  savePoolConfig(getPoolApiConfig());
+  res.json({ ok: true, ...getPoolApiConfig() });
 });
 
 app.get("/api/config", (req, res) => {
@@ -122,8 +132,28 @@ app.use(express.static(path.join(__dirname, "..", "public"), {
   setHeaders: (res) => res.setHeader("Cache-Control", "no-store"),
 }));
 
+// ---- Persistência da config do pool (URL da API + carteira) em /data ----
+const POOL_CFG_FILE = path.join(config.dataDir, "pool-api.json");
+function savePoolConfig(cfg) {
+  try {
+    fs.mkdirSync(config.dataDir, { recursive: true });
+    fs.writeFileSync(POOL_CFG_FILE, JSON.stringify(cfg, null, 2));
+  } catch (err) {
+    console.error("[gui] falha ao salvar pool-api.json:", err.message);
+  }
+}
+function loadPoolConfig() {
+  try {
+    if (fs.existsSync(POOL_CFG_FILE)) {
+      const cfg = JSON.parse(fs.readFileSync(POOL_CFG_FILE, "utf8"));
+      setPoolApi(cfg);
+    }
+  } catch {}
+}
+
 // ---- Boot ----
 ensureConfigExists();
+loadPoolConfig();
 app.listen(config.guiPort, "0.0.0.0", () => {
   console.log(`[gui] xmrig-proxy-gui ouvindo em http://0.0.0.0:${config.guiPort}`);
   // Auto-start opcional do proxy ao subir o container.
