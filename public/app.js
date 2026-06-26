@@ -100,6 +100,28 @@ async function refreshLogs() {
 // Guarda o config bruto carregado para preservar campos que o formulário não edita.
 let currentConfig = {};
 
+// Presets de moeda (herominers, universal RandomX). host:porta sugeridos.
+// "nicehash" indica a porta nicehash quando o pool tem uma dedicada.
+const COIN_PRESETS = {
+  custom:   { label: "Personalizado", algo: "", url: "" },
+  monero:   { label: "Monero (XMR)",  algo: "rx/0", url: "monero.herominers.com:1111", nicehash: "monero.herominers.com:1112", tls: false },
+  zephyr:   { label: "Zephyr (ZEPH)", algo: "rx/0", url: "zephyr.herominers.com:1123", nicehash: "zephyr.herominers.com:1124", tls: false },
+  salvium:  { label: "Salvium (SAL)", algo: "rx/0", url: "salvium.herominers.com:1230", nicehash: "salvium.herominers.com:1231", tls: false },
+  wownero:  { label: "Wownero (WOW)", algo: "rx/wow", url: "wownero.herominers.com:10300", nicehash: "wownero.herominers.com:10301", tls: false },
+  dero:     { label: "Dero (DERO)",   algo: "astrobwt", url: "dero.herominers.com:10300", tls: false },
+};
+
+function fillCoinSelect(select, selected) {
+  select.innerHTML = "";
+  for (const [key, p] of Object.entries(COIN_PRESETS)) {
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = p.label;
+    if (key === selected) opt.selected = true;
+    select.appendChild(opt);
+  }
+}
+
 function addPoolRow(pool = {}) {
   const tpl = $("pool-template").content.cloneNode(true);
   const card = tpl.querySelector(".pool-card");
@@ -110,12 +132,30 @@ function addPoolRow(pool = {}) {
   if (rigId && wallet.endsWith("." + rigId)) {
     wallet = wallet.slice(0, -(rigId.length + 1));
   }
+  const coinSel = card.querySelector(".p-coin");
+  fillCoinSelect(coinSel, pool.coin || "custom");
+
   card.querySelector(".p-url").value = pool.url || "";
+  card.querySelector(".p-algo").value = pool.algo || "";
   card.querySelector(".p-user").value = wallet;
   card.querySelector(".p-pass").value = pool.pass != null ? pool.pass : "x";
   card.querySelector(".p-rigid").value = rigId;
   card.querySelector(".p-tls").checked = pool.tls !== false ? !!pool.tls : false;
   card.querySelector(".p-keepalive").checked = pool.keepalive !== false;
+  // Marca esta pool como ativa se enabled !== false (a primeira ativa vence).
+  card.querySelector(".p-active").checked = pool.enabled !== false;
+
+  // Ao escolher uma moeda no dropdown, preenche URL/algo automaticamente.
+  coinSel.onchange = () => {
+    const p = COIN_PRESETS[coinSel.value];
+    if (!p || coinSel.value === "custom") return;
+    // Usa a porta nicehash se o proxy estiver em modo nicehash e o preset tiver.
+    const useNice = $("f-mode").value === "nicehash" && p.nicehash;
+    card.querySelector(".p-url").value = useNice ? p.nicehash : p.url;
+    card.querySelector(".p-algo").value = p.algo || "";
+    card.querySelector(".p-tls").checked = !!p.tls;
+  };
+
   card.querySelector(".p-remove").onclick = () => card.remove();
   $("pools-list").appendChild(card);
 }
@@ -123,12 +163,23 @@ function addPoolRow(pool = {}) {
 function fillForm(cfg) {
   currentConfig = cfg || {};
   $("f-bind").value = Array.isArray(cfg.bind) ? cfg.bind[0] : (cfg.bind || "0.0.0.0:3333");
-  $("f-mode").value = cfg.mode || "nicehash";
-  $("f-donate").value = cfg["donate-level"] != null ? cfg["donate-level"] : 1;
+  $("f-mode").value = cfg.mode || "simple";
+  $("f-donate").value = cfg["donate-level"] != null ? cfg["donate-level"] : 0;
 
   $("pools-list").innerHTML = "";
   const pools = Array.isArray(cfg.pools) && cfg.pools.length ? cfg.pools : [{}];
-  pools.forEach(addPoolRow);
+  // Garante que só UMA pool venha marcada como ativa (a primeira enabled).
+  let activeMarked = false;
+  pools.forEach((p) => {
+    const enabled = p.enabled !== false && !activeMarked;
+    if (enabled) activeMarked = true;
+    addPoolRow({ ...p, enabled });
+  });
+  if (!activeMarked) {
+    // nenhuma estava ativa: marca a primeira
+    const first = document.querySelector("#pools-list .p-active");
+    if (first) first.checked = true;
+  }
 
   // Espelha no editor avançado (JSON).
   $("config-text").value = JSON.stringify(cfg, null, 2);
@@ -136,34 +187,44 @@ function fillForm(cfg) {
 
 // Monta o objeto config a partir do formulário, preservando o resto do config atual.
 function buildConfigFromForm() {
-  const pools = [];
+  const active = [];
+  const inactive = [];
   for (const card of document.querySelectorAll("#pools-list .pool-card")) {
     const url = card.querySelector(".p-url").value.trim();
     if (!url) continue;
     const wallet = card.querySelector(".p-user").value.trim();
     const rigId = card.querySelector(".p-rigid").value.trim();
     // A maioria dos pools (herominers etc.) lê o nome do worker como "carteira.NOME".
-    // Então, se o Rig ID estiver preenchido e ainda não fizer parte da carteira,
-    // a GUI junta automaticamente para o nome aparecer no painel do pool.
     let user = wallet;
     if (rigId && !wallet.endsWith("." + rigId)) {
       user = wallet + "." + rigId;
     }
-    pools.push({
+    const isActive = card.querySelector(".p-active").checked;
+    const pool = {
+      coin: card.querySelector(".p-coin").value,
+      algo: card.querySelector(".p-algo").value.trim() || undefined,
       url,
       user,
       pass: card.querySelector(".p-pass").value || "x",
       rig_id: rigId || "proxy",
       keepalive: card.querySelector(".p-keepalive").checked,
       tls: card.querySelector(".p-tls").checked,
-      enabled: true,
-    });
+      enabled: isActive,
+    };
+    (isActive ? active : inactive).push(pool);
   }
-  // Parte do config atual + sobrescreve os campos do formulário.
+  // A pool ativa vai primeiro (é onde o proxy minera); as demais ficam guardadas.
+  // Se nenhuma foi marcada, ativa a primeira para o proxy ter onde minerar.
+  if (active.length === 0 && inactive.length > 0) {
+    inactive[0].enabled = true;
+    active.push(inactive.shift());
+  }
+  const pools = [...active, ...inactive];
+
   const cfg = { ...currentConfig };
   cfg.bind = [$("f-bind").value.trim() || "0.0.0.0:3333"];
   cfg.mode = $("f-mode").value;
-  cfg["donate-level"] = parseInt($("f-donate").value || "1", 10);
+  cfg["donate-level"] = parseInt($("f-donate").value || "0", 10);
   cfg.pools = pools;
   return cfg;
 }

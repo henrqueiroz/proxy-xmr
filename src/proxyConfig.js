@@ -14,10 +14,12 @@ export function defaultProxyConfig() {
     bind: ["0.0.0.0:3333"],
     pools: [
       {
-        url: "sgcsolutions.com.br:3333",
+        coin: "zephyr",
+        algo: "rx/0",
+        url: "zephyr.herominers.com:1123",
         user: "SUA_CARTEIRA",
         pass: "x",
-        rig_id: "proxy",
+        rig_id: "SuperProxy",
         keepalive: true,
         tls: false,
         enabled: true,
@@ -25,7 +27,7 @@ export function defaultProxyConfig() {
     ],
     "access-log-file": null,
     "log-file": null,
-    "donate-level": 1,
+    "donate-level": 0,
     http: {
       enabled: true,
       host: "0.0.0.0",

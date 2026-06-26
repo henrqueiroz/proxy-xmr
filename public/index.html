@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>xmrig-proxy GUI</title>
-  <link rel="stylesheet" href="style.css?v=7" />
+  <link rel="stylesheet" href="style.css?v=8" />
 </head>
 <body>
   <header>
@@ -101,13 +101,13 @@
           </select>
         </div>
         <div class="field">
-          <label>Donate level (%)</label>
-          <input type="number" id="f-donate" min="0" max="99" value="1" />
+          <label>Donate level (%) — 0 = zero de verdade</label>
+          <input type="number" id="f-donate" min="0" max="99" value="0" />
         </div>
       </div>
 
       <h3>Pools</h3>
-      <p class="hint">O proxy repassa para o primeiro pool ativo. Adicione mais de um para failover.</p>
+      <p class="hint">Adicione quantas quiser. Marque <strong>"Usar esta pool"</strong> na que deseja minerar — ao salvar, o proxy minera nela com as configs dela. As demais ficam guardadas (desativadas) para você alternar quando quiser.</p>
       <div id="pools-list"></div>
       <button id="btn-add-pool" type="button">+ Adicionar pool</button>
 
@@ -130,10 +130,22 @@
     <!-- Template de um pool (clonado por JS) -->
     <template id="pool-template">
       <div class="pool-card">
+        <div class="pool-head">
+          <label class="active-pick"><input type="radio" name="active-pool" class="p-active" /> <strong>Usar esta pool (minerar aqui)</strong></label>
+          <button type="button" class="danger p-remove">Remover</button>
+        </div>
         <div class="form-grid">
+          <div class="field">
+            <label>Moeda (preset)</label>
+            <select class="p-coin"></select>
+          </div>
           <div class="field grow">
             <label>URL do pool (host:porta)</label>
             <input type="text" class="p-url" placeholder="xmr.pool.com:443" />
+          </div>
+          <div class="field">
+            <label>Algoritmo</label>
+            <input type="text" class="p-algo" placeholder="rx/0" />
           </div>
           <div class="field grow">
             <label>Carteira / usuário</label>
@@ -151,9 +163,6 @@
             <label><input type="checkbox" class="p-tls" /> TLS (SSL)</label>
             <label><input type="checkbox" class="p-keepalive" checked /> Keepalive</label>
           </div>
-          <div class="field">
-            <button type="button" class="danger p-remove">Remover</button>
-          </div>
         </div>
       </div>
     </template>
@@ -164,6 +173,6 @@
     </section>
   </main>
 
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

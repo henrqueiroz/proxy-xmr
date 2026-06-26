@@ -75,6 +75,14 @@ h3 { font-size: 14px; color: var(--text); margin: 18px 0 4px; }
   background: var(--panel); border: 1px solid var(--border);
   border-radius: 10px; padding: 14px; margin-bottom: 12px;
 }
+.pool-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.active-pick { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.active-pick input { width: auto; }
+/* Destaca a pool ativa selecionada */
+.pool-card:has(.p-active:checked) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 details.advanced { margin-top: 20px; }
 details.advanced summary { cursor: pointer; color: var(--muted); font-size: 13px; }
 details.advanced textarea { margin-top: 10px; }
