@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>xmrig-proxy GUI</title>
-  <link rel="stylesheet" href="style.css?v=6" />
+  <link rel="stylesheet" href="style.css?v=7" />
 </head>
 <body>
   <header>
@@ -53,6 +53,13 @@
         <div class="card"><span class="label">Altura da rede</span><span class="val" id="net-height">—</span></div>
         <div class="card ok"><span class="label">Blocos encontrados</span><span class="val" id="blocks-found">—</span></div>
       </div>
+
+      <h3>🏆 Top 10 maiores shares (valor atingido) <span id="stream-status" class="hint"></span></h3>
+      <p class="hint">Os 10 shares de maior valor já encontrados (ao vivo, via stream do pool), comparados com a dificuldade do bloco. "Falta p/ bloco" mostra quantas vezes maior o share precisaria ser.</p>
+      <table id="top-table">
+        <thead><tr><th>#</th><th>Valor do share</th><th>% do bloco</th><th>Falta p/ bloco</th><th>Minerador</th><th>Hora</th></tr></thead>
+        <tbody></tbody>
+      </table>
 
       <h3>Dificuldade por minerador (job atual)</h3>
       <table id="shares-table">
@@ -157,6 +164,6 @@
     </section>
   </main>
 
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>

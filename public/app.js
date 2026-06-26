@@ -314,6 +314,37 @@ async function refreshPool() {
   }
 }
 
+// Formata "quantas vezes falta" para o bloco (ex.: 628× ou —).
+function fmtFactor(f) {
+  if (f == null) return "—";
+  if (f <= 1) return "🎯 BLOCO!";
+  if (f >= 1000) return Math.round(f).toLocaleString("pt-BR") + "×";
+  return f.toFixed(1) + "×";
+}
+
+async function refreshTop() {
+  const r = await api("/api/topshares");
+  if (!r.ok) return;
+  const d = r.data;
+  $("stream-status").textContent = d.connected ? "🟢 ao vivo" : "🔴 desconectado";
+
+  const tb = document.querySelector("#top-table tbody");
+  tb.innerHTML = "";
+  if (!d.top || d.top.length === 0) {
+    tb.innerHTML = `<tr><td colspan="6" class="hint">Aguardando shares do stream do pool…</td></tr>`;
+    return;
+  }
+  d.top.forEach((s, i) => {
+    const when = s.at ? new Date(s.at).toLocaleTimeString("pt-BR") : "—";
+    const tr = document.createElement("tr");
+    if (i === 0) tr.className = "top-best";
+    tr.innerHTML = `<td>${i + 1}</td><td>${fmtDiff(s.value)}</td>` +
+      `<td>${fmtPct(s.pct)}</td><td>${fmtFactor(s.factorToBlock)}</td>` +
+      `<td>${s.miner}</td><td>${when}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
 // Loop de atualização
 let poolTickCount = 0;
 function tick() {
@@ -321,6 +352,7 @@ function tick() {
   refreshStats();
   refreshWorkers();
   refreshLogs();
+  refreshTop(); // top shares é local (rápido), atualiza sempre
   // A API do pool é mais lenta e tem rate limit: atualiza a cada ~15s.
   if (poolTickCount % 5 === 0) refreshPool();
   poolTickCount++;

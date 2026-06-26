@@ -6,6 +6,7 @@ import { proxyManager } from "./proxyManager.js";
 import { readConfig, writeConfig, ensureConfigExists } from "./proxyConfig.js";
 import { getDashboard, getWorkers } from "./proxyApi.js";
 import { getPoolReport, getPoolApiConfig, setPoolApi } from "./poolApi.js";
+import { shareStream } from "./shareStream.js";
 import fs from "node:fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -57,10 +58,17 @@ app.get("/api/logs", (req, res) => {
 app.get("/api/pool", async (req, res) => {
   try {
     const data = await getPoolReport();
+    // Mantém a dificuldade da rede no stream de shares atualizada.
+    if (data.networkDiff) shareStream.setNetworkDiff(data.networkDiff);
     res.json({ ok: true, data });
   } catch (err) {
     res.json({ ok: false, error: err.message });
   }
+});
+
+// Top 10 maiores shares (valor atingido) + % do bloco, via WebSocket do pool.
+app.get("/api/topshares", (req, res) => {
+  res.json({ ok: true, data: shareStream.snapshot() });
 });
 
 // Lê/define a URL da API do pool e a carteira a consultar (persistido em /data).
@@ -71,6 +79,8 @@ app.get("/api/pool-config", (req, res) => {
 app.post("/api/pool-config", (req, res) => {
   setPoolApi({ base: req.body.base, wallet: req.body.wallet });
   savePoolConfig(getPoolApiConfig());
+  // (Re)conecta o WebSocket de shares para o host do novo pool.
+  shareStream.connectFromApiBase(getPoolApiConfig().base);
   res.json({ ok: true, ...getPoolApiConfig() });
 });
 
@@ -154,6 +164,8 @@ function loadPoolConfig() {
 // ---- Boot ----
 ensureConfigExists();
 loadPoolConfig();
+// Conecta o WebSocket de shares ao vivo do host configurado (qualquer herominers).
+shareStream.connectFromApiBase(getPoolApiConfig().base);
 app.listen(config.guiPort, "0.0.0.0", () => {
   console.log(`[gui] xmrig-proxy-gui ouvindo em http://0.0.0.0:${config.guiPort}`);
   // Auto-start opcional do proxy ao subir o container.
